@@ -1,20 +1,40 @@
 require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-waffle");
-// const { ACCOUNT_PRIVATE_KEY,ALCHEMY_KEY } = process.env;
+
+try {
+  require("dotenv").config();
+} catch (error) {
+  // dotenv is optional; environment variables can still come from the shell/CI.
+}
+
+const { SEPOLIA_RPC_URL, SEPOLIA_PRIVATE_KEY } = process.env;
+
+const networks = {
+  hardhat: {
+    chainId: 31337,
+  },
+  localhost: {
+    url: "http://127.0.0.1:8545",
+    chainId: 31337,
+  },
+};
+
+if (SEPOLIA_RPC_URL && SEPOLIA_PRIVATE_KEY) {
+  networks.sepolia = {
+    url: SEPOLIA_RPC_URL,
+    accounts: [
+      SEPOLIA_PRIVATE_KEY.startsWith("0x")
+        ? SEPOLIA_PRIVATE_KEY
+        : `0x${SEPOLIA_PRIVATE_KEY}`,
+    ],
+    chainId: 11155111,
+  };
+}
 
 module.exports = {
   solidity: "0.8.4",
-  // defaultNetwork: "rinkeby",
   paths: {
     artifacts: "../frontend/artifacts",
   },
-  networks: {
-    hardhat: {
-      chainId: 31337
-    },
-    // rinkeby: {
-    //   url: `https://eth-rinkeby.alchemyapi.io/v2/${ALCHEMY_KEY}`,
-    //   accounts: [`0x${ACCOUNT_PRIVATE_KEY}`]
-    // }
-  },
+  networks,
 };

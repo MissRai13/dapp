@@ -107,6 +107,20 @@ const getConfiguredChainId = () => {
 
 const toHexChainId = (chainId) => `0x${Number(chainId).toString(16)}`;
 
+const getSepoliaRpcUrls = () => {
+  const rawUrls = process.env.NEXT_PUBLIC_SEPOLIA_RPC_URLS || process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || "";
+  const configuredUrls = rawUrls
+    .split(",")
+    .map((url) => url.trim())
+    .filter(Boolean);
+
+  if (configuredUrls.length > 0) {
+    return configuredUrls;
+  }
+
+  return ["https://rpc.sepolia.org", "https://ethereum-sepolia-rpc.publicnode.com"];
+};
+
 const getChainConfig = (chainId) => {
   if (chainId === 31337) {
     return {
@@ -130,7 +144,7 @@ const getChainConfig = (chainId) => {
         symbol: "ETH",
         decimals: 18,
       },
-      rpcUrls: ["https://rpc.sepolia.org"],
+      rpcUrls: getSepoliaRpcUrls(),
       blockExplorerUrls: ["https://sepolia.etherscan.io"],
     };
   }
