@@ -31,14 +31,35 @@ https://user-images.githubusercontent.com/55044734/164529677-27af29f2-96d6-4ce6-
 
 ----------------
 
+### Project structure
+
+```text
+backend/   Hardhat config, contracts, deploy scripts, tests, backend package files
+frontend/  Next.js app, Tailwind UI, Redux state, frontend package files
+```
+
+### Deployment note
+
+If you deploy the frontend on Vercel, set the project Root Directory to:
+
+```text
+frontend
+```
+
+The Next.js `package.json` is inside `frontend/`. The repo root also includes wrapper scripts so local tooling can run the frontend from the root with `npm run build` or `npm run dev`.
+
+If you keep the Vercel Root Directory as the repository root, the included `vercel.json` installs the frontend dependencies, runs the frontend build, and points Vercel at `frontend/.next`.
+
 ### How to run :runner: :
 
 - Run hardhat node
     ```
+    cd backend
     npx hardhat node
     ```
 - Run test cases
     ```
+    cd backend
     npx hardhat test
     ```
 - Connect HardHat Account to Metamask
@@ -47,11 +68,12 @@ https://github.com/Thiru-Malai/Crowdfunding-DAPP/assets/73980589/f694a9ef-a035-4
 
 - Deploy contract in local hardhat node
     ```
+    cd backend
     npx hardhat run scripts/deploy.js --network localhost
     ```
 - Run Next.js frontend
     ```
-    cd client
+    cd frontend
     npm run dev
     ```
 - Connect account to  website

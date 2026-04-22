@@ -1,28 +1,18 @@
 {
-  "name": "crowdfunding",
+  "name": "crowdfunding-dapp",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix frontend run start",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "backend:node": "npm --prefix backend run node",
+    "backend:deploy:local": "npm --prefix backend run deploy:local",
+    "backend:test": "npm --prefix backend test"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/spandan114/Crowdfunding-DAPP.git"
-  },
-  "author": "spandan joshi",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/spandan114/Crowdfunding-DAPP/issues"
-  },
-  "homepage": "https://github.com/spandan114/Crowdfunding-DAPP#readme",
-  "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "^2.0.5",
-    "@nomiclabs/hardhat-waffle": "^2.0.3",
-    "chai": "^4.3.6",
-    "ethereum-waffle": "^3.4.4",
-    "ethers": "^5.6.2",
-    "hardhat": "^2.8.3"
-  },
-  "dependencies": {}
+  "dependencies": {
+    "next": "11.1.2"
+  }
 }
