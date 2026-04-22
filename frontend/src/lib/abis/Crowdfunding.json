@@ -1,0 +1,64 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": false, "name": "projectContractAddress", "type": "address" },
+      { "indexed": false, "name": "creator", "type": "address" },
+      { "indexed": false, "name": "minContribution", "type": "uint256" },
+      { "indexed": false, "name": "projectDeadline", "type": "uint256" },
+      { "indexed": false, "name": "goalAmount", "type": "uint256" },
+      { "indexed": false, "name": "currentAmount", "type": "uint256" },
+      { "indexed": false, "name": "noOfContributors", "type": "uint256" },
+      { "indexed": false, "name": "title", "type": "string" },
+      { "indexed": false, "name": "desc", "type": "string" },
+      { "indexed": false, "name": "currentState", "type": "uint256" }
+    ],
+    "name": "ProjectStarted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": false, "name": "projectAddress", "type": "address" },
+      { "indexed": false, "name": "contributedAmount", "type": "uint256" },
+      { "indexed": true, "name": "contributor", "type": "address" }
+    ],
+    "name": "ContributionReceived",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      { "name": "minimumContribution", "type": "uint256" },
+      { "name": "deadline", "type": "uint256" },
+      { "name": "targetContribution", "type": "uint256" },
+      { "name": "projectTitle", "type": "string" },
+      { "name": "projectDesc", "type": "string" }
+    ],
+    "name": "createProject",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "returnAllProjects",
+    "outputs": [
+      {
+        "components": [],
+        "name": "",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "name": "_projectAddress", "type": "address" }
+    ],
+    "name": "contribute",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  }
+]

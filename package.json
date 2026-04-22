@@ -1,0 +1,19 @@
+{
+  "name": "crowdfunding-dapp",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix frontend run start",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "backend:node": "npm --prefix backend run node",
+    "backend:deploy:local": "npm --prefix backend run deploy:local",
+    "backend:deploy:sepolia": "npm --prefix backend run deploy:sepolia",
+    "backend:test": "npm --prefix backend test"
+  },
+  "dependencies": {
+    "next": "^16.2.4"
+  }
+}
