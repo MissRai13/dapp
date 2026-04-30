@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useWallet } from '@/lib/hooks/useWallet';
 import { useContract, ProjectData } from '@/lib/hooks/useContract';
-import { formatAddress, getReadProviderConfigError } from '@/lib/web3';
+import { DEPLOYED_CHAIN_ID, formatAddress, getReadBlockNumber, getReadProviderConfigError } from '@/lib/web3';
 import { formatEth } from '@/lib/campaign';
 import ProjectCard from './ProjectCard';
 import CreateProjectForm from './CreateProjectForm';
@@ -32,6 +32,7 @@ export default function CrowdfundingDApp() {
   });
   const [userContributions, setUserContributions] = useState<Record<string, number>>({});
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const [localChainNotice, setLocalChainNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -45,7 +46,16 @@ export default function CrowdfundingDApp() {
     setIsLoadingProjects(true);
     try {
       const allProjects = await fetchAllProjects();
+      const blockNumber = await getReadBlockNumber();
       setProjects(allProjects);
+
+      if (DEPLOYED_CHAIN_ID === 31337 && allProjects.length === 0 && typeof blockNumber === 'number' && blockNumber <= 2) {
+        setLocalChainNotice(
+          'Your local Hardhat network looks freshly reset, so older campaigns from a previous node session will not appear here. Keep the same node running, or recreate the campaigns after restarting the local chain.'
+        );
+      } else {
+        setLocalChainNotice(null);
+      }
 
       const nowInSeconds = Math.floor(Date.now() / 1000);
       const activeProjects = allProjects.filter((project) => project.state === 0 && project.deadline > nowInSeconds).length;
@@ -74,16 +84,14 @@ export default function CrowdfundingDApp() {
     }
   }, [account, fetchAllProjects, getUserContribution]);
 
-  // Load projects on mount and when wallet connects
+  // Load projects on mount and whenever the active account changes.
   useEffect(() => {
-    if (!isConnected) return;
-
     const timeoutId = window.setTimeout(() => {
       void loadProjects();
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [isConnected, loadProjects]);
+  }, [loadProjects]);
 
   const handleContributeToProject = async (projectAddress: string, amount: number) => {
     try {
@@ -163,14 +171,14 @@ export default function CrowdfundingDApp() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {!isConnected ? (
-          // Welcome Section
-          <div className="text-center py-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+        {!isConnected && (
+          <div className="mb-12 rounded-3xl border border-slate-800 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),transparent_35%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))] px-6 py-14 text-center shadow-2xl shadow-slate-950/40 sm:px-10">
+            <h2 className="mb-4 text-4xl font-bold text-white md:text-5xl">
               Fund Real Causes With On-Chain Transparency
             </h2>
-            <p className="text-xl text-slate-300 mb-8">
-              Create and support charity fundraisers with transparent ETH donations.
+            <p className="mx-auto mb-8 max-w-3xl text-xl text-slate-300">
+              Explore live campaigns without connecting first, then connect your wallet when
+              you are ready to create a fundraiser or donate.
             </p>
             <button
               onClick={connectWallet}
@@ -179,166 +187,188 @@ export default function CrowdfundingDApp() {
             >
               {walletLoading ? 'Connecting...' : 'Connect Wallet to Start Giving'}
             </button>
-            {walletError && (
-              <div className="mx-auto mt-6 max-w-2xl rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-                {walletError}
-              </div>
-            )}
           </div>
-        ) : (
-          // Dashboard Section
-          <div>
-            <h2 className="text-3xl font-bold text-white mb-8">
-              Giving Dashboard
-            </h2>
+        )}
 
-            {contractError && (
-              <div className="mb-6 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-                {contractError}
-              </div>
-            )}
+        <div>
+          <h2 className="mb-8 text-3xl font-bold text-white">
+            {isConnected ? 'Giving Dashboard' : 'Campaign Explorer'}
+          </h2>
 
-            {walletError && (
-              <div className="mb-6 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-                {walletError}
-              </div>
-            )}
-
-            {rpcConfigError && (
-              <div className="mb-6 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-                {rpcConfigError} The app will fall back to your wallet provider, but campaign
-                loading and confirmation may be slower until this is fixed.
-              </div>
-            )}
-
-            {/* Stats Cards - Real Data from Blockchain */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-lg shadow-md">
-                <p className="text-slate-400 text-sm mb-2">Total Campaigns</p>
-                <p className="text-3xl font-bold text-emerald-300">
-                  {isLoadingProjects ? '-' : stats.totalProjects}
-                </p>
-              </div>
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-lg shadow-md">
-                <p className="text-slate-400 text-sm mb-2">Active Fundraisers</p>
-                <p className="text-3xl font-bold text-emerald-300">
-                  {isLoadingProjects ? '-' : stats.activeProjects}
-                </p>
-              </div>
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-lg shadow-md">
-                <p className="text-slate-400 text-sm mb-2">Raised for Causes</p>
-                <p className="text-3xl font-bold text-emerald-300">
-                  {isLoadingProjects ? '-' : formatEth(stats.totalFunded)} ETH
-                </p>
-              </div>
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-lg shadow-md">
-                <p className="text-slate-400 text-sm mb-2">Your Donations</p>
-                <p className="text-3xl font-bold text-emerald-300">
-                  {isLoadingProjects ? '-' : formatEth(stats.totalContributions)} ETH
-                </p>
-              </div>
+          {contractError && (
+            <div className="mb-6 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+              {contractError}
             </div>
+          )}
 
-            {/* Create Fundraiser Form */}
-            <CreateProjectForm onSuccess={loadProjects} />
+          {walletError && (
+            <div className="mb-6 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+              {walletError}
+            </div>
+          )}
 
-            {/* Fundraisers Section */}
-            <div className="mt-12">
-              <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <h3 className="text-2xl font-bold text-white">
-                  Campaigns
-                </h3>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <div className="flex rounded-lg border border-slate-700 bg-slate-900 p-1">
-                    <button
-                      onClick={() => setDashboardView('campaigns')}
-                      className={`rounded-md px-3 py-2 text-sm font-medium transition ${
-                        dashboardView === 'campaigns' ? 'bg-emerald-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
-                      }`}
-                    >
-                      All Campaigns
-                    </button>
-                    <button
-                      onClick={() => setDashboardView('contributions')}
-                      className={`rounded-md px-3 py-2 text-sm font-medium transition ${
-                        dashboardView === 'contributions' ? 'bg-emerald-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
-                      }`}
-                    >
-                      My Contributions
-                    </button>
-                  </div>
-                  <button
-                    onClick={loadProjects}
-                    disabled={isLoadingProjects}
-                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition disabled:opacity-50"
-                  >
-                    {isLoadingProjects ? 'Loading...' : 'Refresh'}
-                  </button>
-                </div>
-              </div>
+          {rpcConfigError && (
+            <div className="mb-6 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+              {rpcConfigError} The app will fall back to your wallet provider, but campaign
+              loading and confirmation may be slower until this is fixed.
+            </div>
+          )}
 
-              {isLoadingProjects ? (
-                <div className="text-center py-12">
-                  <p className="text-slate-400">Loading fundraisers...</p>
-                </div>
-              ) : dashboardView === 'contributions' ? (
-                <MyContributions projects={projects} userContributions={userContributions} />
-              ) : projects.length === 0 ? (
-                <div className="bg-slate-900 border border-slate-800 rounded-lg p-8 text-center">
-                  <p className="text-slate-400">
-                    No fundraisers yet. Start the first cause.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div className="mb-6 grid gap-3 lg:grid-cols-[1fr_auto]">
-                    <input
-                      type="search"
-                      value={searchQuery}
-                      onChange={(event) => setSearchQuery(event.target.value)}
-                      placeholder="Search campaigns by title"
-                      className="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
-                    />
-                    <div className="flex rounded-lg border border-slate-700 bg-slate-900 p-1">
-                      {(['all', 'active', 'completed'] as const).map((filter) => (
-                        <button
-                          key={filter}
-                          onClick={() => setCampaignFilter(filter)}
-                          className={`rounded-md px-3 py-2 text-sm font-medium capitalize transition ${
-                            campaignFilter === filter
-                              ? 'bg-slate-100 text-slate-950'
-                              : 'text-slate-300 hover:bg-slate-800'
-                          }`}
-                        >
-                          {filter}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+          {localChainNotice && (
+            <div className="mb-6 rounded-lg border border-sky-400/30 bg-sky-400/10 px-4 py-3 text-sm text-sky-100">
+              {localChainNotice}
+            </div>
+          )}
 
-                  {filteredProjects.length === 0 ? (
-                    <div className="bg-slate-900 border border-slate-800 rounded-lg p-8 text-center">
-                      <p className="text-slate-400">No campaigns match your search or filter.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {filteredProjects.map((project) => (
-                        <ProjectCard
-                          key={project.address}
-                          project={project}
-                          userContribution={userContributions[project.address] || 0}
-                          onContribute={(amount) =>
-                            handleContributeToProject(project.address, amount)
-                          }
-                        />
-                      ))}
-                    </div>
-                  )}
-                </>
+          <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-4">
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-lg shadow-md">
+              <p className="text-slate-400 text-sm mb-2">Total Campaigns</p>
+              <p className="text-3xl font-bold text-emerald-300">
+                {isLoadingProjects ? '-' : stats.totalProjects}
+              </p>
+            </div>
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-lg shadow-md">
+              <p className="text-slate-400 text-sm mb-2">Active Fundraisers</p>
+              <p className="text-3xl font-bold text-emerald-300">
+                {isLoadingProjects ? '-' : stats.activeProjects}
+              </p>
+            </div>
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-lg shadow-md">
+              <p className="text-slate-400 text-sm mb-2">Raised for Causes</p>
+              <p className="text-3xl font-bold text-emerald-300">
+                {isLoadingProjects ? '-' : formatEth(stats.totalFunded)} ETH
+              </p>
+            </div>
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-lg shadow-md">
+              <p className="text-slate-400 text-sm mb-2">Your Donations</p>
+              <p className="text-3xl font-bold text-emerald-300">
+                {isLoadingProjects ? '-' : formatEth(stats.totalContributions)} ETH
+              </p>
+              {!isConnected && (
+                <p className="mt-2 text-xs text-slate-500">Connect your wallet to see personal totals.</p>
               )}
             </div>
           </div>
-        )}
+
+          {isConnected ? (
+            <CreateProjectForm onSuccess={loadProjects} />
+          ) : (
+            <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-6 text-center">
+              <h3 className="text-xl font-semibold text-white">Ready to launch a fundraiser?</h3>
+              <p className="mt-2 text-sm text-slate-300">
+                Your wallet is already optional for browsing, but you will need to connect it to
+                create campaigns and donate.
+              </p>
+              <button
+                onClick={connectWallet}
+                disabled={walletLoading}
+                className="mt-4 rounded-lg bg-emerald-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:opacity-50"
+              >
+                {walletLoading ? 'Connecting...' : 'Connect Wallet'}
+              </button>
+            </div>
+          )}
+
+          <div className="mt-12">
+            <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <h3 className="text-2xl font-bold text-white">
+                Campaigns
+              </h3>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="flex rounded-lg border border-slate-700 bg-slate-900 p-1">
+                  <button
+                    onClick={() => setDashboardView('campaigns')}
+                    className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                      dashboardView === 'campaigns' ? 'bg-emerald-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    All Campaigns
+                  </button>
+                  <button
+                    onClick={() => setDashboardView('contributions')}
+                    className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                      dashboardView === 'contributions' ? 'bg-emerald-500 text-slate-950' : 'text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    My Contributions
+                  </button>
+                </div>
+                <button
+                  onClick={loadProjects}
+                  disabled={isLoadingProjects}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition disabled:opacity-50"
+                >
+                  {isLoadingProjects ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
+            </div>
+
+            {isLoadingProjects ? (
+              <div className="text-center py-12">
+                <p className="text-slate-400">Loading fundraisers...</p>
+              </div>
+            ) : dashboardView === 'contributions' && !isConnected ? (
+              <div className="bg-slate-900 border border-slate-800 rounded-lg p-8 text-center">
+                <p className="text-slate-300">Connect your wallet to see only the campaigns you have supported.</p>
+              </div>
+            ) : dashboardView === 'contributions' ? (
+              <MyContributions projects={projects} userContributions={userContributions} />
+            ) : projects.length === 0 ? (
+              <div className="bg-slate-900 border border-slate-800 rounded-lg p-8 text-center">
+                <p className="text-slate-400">
+                  No fundraisers are on this network yet.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="mb-6 grid gap-3 lg:grid-cols-[1fr_auto]">
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Search campaigns by title"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+                  />
+                  <div className="flex rounded-lg border border-slate-700 bg-slate-900 p-1">
+                    {(['all', 'active', 'completed'] as const).map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setCampaignFilter(filter)}
+                        className={`rounded-md px-3 py-2 text-sm font-medium capitalize transition ${
+                          campaignFilter === filter
+                            ? 'bg-slate-100 text-slate-950'
+                            : 'text-slate-300 hover:bg-slate-800'
+                        }`}
+                      >
+                        {filter}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {filteredProjects.length === 0 ? (
+                  <div className="bg-slate-900 border border-slate-800 rounded-lg p-8 text-center">
+                    <p className="text-slate-400">No campaigns match your search or filter.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {filteredProjects.map((project) => (
+                      <ProjectCard
+                        key={project.address}
+                        project={project}
+                        userContribution={userContributions[project.address] || 0}
+                        canContribute={isConnected}
+                        onContribute={(amount) =>
+                          handleContributeToProject(project.address, amount)
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
       </main>
     </div>
   );

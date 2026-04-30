@@ -63,7 +63,11 @@ export const useContract = () => {
           description
         );
 
-        const receipt = await waitForTransactionReceipt(tx.hash);
+        const receipt = await tx.wait();
+        if (!receipt) {
+          throw new Error('Transaction confirmation was not received');
+        }
+
         setIsLoading(false);
         return receipt;
       } catch (err: unknown) {

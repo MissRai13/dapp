@@ -217,6 +217,13 @@ export const getActiveReadChainId = async () => {
   return Number(network.chainId);
 };
 
+export const getReadBlockNumber = async () => {
+  const provider = getReadOnlyProvider();
+  if (!provider) return null;
+
+  return provider.getBlockNumber();
+};
+
 export const hasCodeAtAddress = async (address: string) => {
   const provider = getReadOnlyProvider();
   if (!provider) return false;

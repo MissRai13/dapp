@@ -10,6 +10,7 @@ interface ProjectCardProps {
   project: ProjectData;
   onContribute: (amount: number) => Promise<void>;
   userContribution: number;
+  canContribute: boolean;
 }
 
 const STATE_NAMES = ['Fundraising', 'Expired', 'Successful'];
@@ -19,6 +20,7 @@ export default function ProjectCard({
   project,
   onContribute,
   userContribution,
+  canContribute,
 }: ProjectCardProps) {
   const [showContributeForm, setShowContributeForm] = useState(false);
   const [contributionAmount, setContributionAmount] = useState('');
@@ -137,7 +139,7 @@ export default function ProjectCard({
 
       {/* Actions */}
       <div className="px-6 py-4 flex gap-2">
-        {!showContributeForm && isFundraising && (
+        {!showContributeForm && isFundraising && canContribute && (
           <button
             onClick={() => {
               setTransactionStatus('idle');
@@ -148,6 +150,12 @@ export default function ProjectCard({
           >
             Donate
           </button>
+        )}
+
+        {!showContributeForm && isFundraising && !canContribute && (
+          <div className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2 text-center text-sm text-slate-300">
+            Connect your wallet to donate to this campaign.
+          </div>
         )}
 
         {showContributeForm && (

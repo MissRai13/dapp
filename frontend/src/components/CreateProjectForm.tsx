@@ -5,12 +5,13 @@ import { useContract } from '@/lib/hooks/useContract';
 import { serializeCampaignDescription } from '@/lib/campaign';
 
 interface CreateProjectFormProps {
-  onSuccess: () => void;
+  onSuccess: () => Promise<void>;
 }
 
 export default function CreateProjectForm({ onSuccess }: CreateProjectFormProps) {
   const { createProject, isLoading } = useContract();
   const [showForm, setShowForm] = useState(false);
+  const [submitState, setSubmitState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -27,6 +28,7 @@ export default function CreateProjectForm({ onSuccess }: CreateProjectFormProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitState('idle');
 
     if (!formData.title.trim() || !formData.description.trim()) {
       alert('Please add a cause name and fundraiser story');
@@ -48,6 +50,8 @@ export default function CreateProjectForm({ onSuccess }: CreateProjectFormProps)
     }
 
     try {
+      setSubmitState('loading');
+
       await createProject(
         formData.title,
         serializeCampaignDescription(formData.description, formData.imageUrl),
@@ -55,6 +59,9 @@ export default function CreateProjectForm({ onSuccess }: CreateProjectFormProps)
         target,
         days
       );
+
+      await onSuccess();
+      setSubmitState('success');
       alert('Fundraiser launched successfully!');
       setFormData({
         title: '',
@@ -65,8 +72,8 @@ export default function CreateProjectForm({ onSuccess }: CreateProjectFormProps)
         deadlineDays: '30',
       });
       setShowForm(false);
-      onSuccess();
     } catch (error: unknown) {
+      setSubmitState('error');
       const message = error instanceof Error ? error.message : 'Unable to launch fundraiser';
       alert(`Error: ${message}`);
     }
@@ -212,7 +219,13 @@ export default function CreateProjectForm({ onSuccess }: CreateProjectFormProps)
               disabled={isLoading}
               className="flex-1 rounded-lg bg-emerald-500 px-4 py-2 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isLoading ? 'Launching fundraiser...' : 'Launch Fundraiser'}
+              {submitState === 'loading'
+                ? 'Waiting for confirmation...'
+                : submitState === 'success'
+                  ? 'Fundraiser Created'
+                  : submitState === 'error'
+                    ? 'Try Again'
+                    : 'Launch Fundraiser'}
             </button>
             <button
               type="button"
